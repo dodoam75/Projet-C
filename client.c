@@ -42,7 +42,6 @@ int emailExiste(Boutique *b, char email[]) {
             return 1;
         }
     }
-
     return 0;
 }
 
@@ -81,6 +80,20 @@ int ajouterClient(Boutique *b, Client nouveauClient) {
     return 1;
 }
 /* Modifier un client */
+
+/* Modifier un client */
+
+int modifierClient(Boutique *b, int idClient, Client modification) {
+    int index = trouverClient(b, idClient);
+
+    if (index == 0) {
+        return 0;
+    }
+
+    index--;
+
+    return 0;
+}
 
 
 /* Supprimer un client : suppression logique */
