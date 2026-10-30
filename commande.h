@@ -6,6 +6,15 @@
  * UTILISE PAR : main.c (menu), initialisation.c (jeu de test, via
  *        ajouterLigne et calculCommande), statistique.c.
  * ============================================================ */
+/* ============================================================
+ * commande.h - Interface du module Commandes
+ * ------------------------------------------------------------
+ * ROLE : declare la creation des commandes, la gestion des lignes, le
+ *        changement de statut, l'annulation et le calcul des montants.
+ * UTILISE PAR : main.c (menu), initialisation.c (jeu de test, via
+ *        ajouterLigne et calculCommande), statistique.c.
+ * ============================================================ */
+
 #ifndef COMMANDE_H
 #define COMMANDE_H
 
@@ -19,7 +28,7 @@ Commande *chercherCommande(Boutique *boutique, int idClient, int idCommande);
 
 /* Modifier le statut d'une commande */
 int changerStatutCommande(Boutique *boutique, int idClient,
-                          int idCommande, StatutCommande nouveauStatut);
+                          int numeroCommande, const char *nouveauStatut);
 
 /* Annuler une commande */
 int annulerCommande(Boutique *boutique, int idClient, int idCommande);
@@ -30,5 +39,6 @@ void afficherCommandes(Boutique *boutique, int idClient);
 /* Afficher une commande précise */
 void afficherCommande(Commande *commande);
 
-#endif
+void menuCreerCommande(Boutique *boutique);
 
+#endif
