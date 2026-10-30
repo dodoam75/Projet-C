@@ -82,6 +82,7 @@ int ajouterClient(Boutique *b, Client nouveauClient) {
     return 1;
 }
 
+//what
 
 /* Modifier un client */
 
@@ -142,23 +143,16 @@ int supprimerClient(Boutique *b, int idClient) {
 
 /* Afficher la liste des clients */
 
-void afficherClients(Boutique *b) {
-
-    printf("\n===== LISTE DES CLIENTS =====\n");
-
+void afficherListeClients(Boutique *b) {
+    printf("\n LISTE DES CLIENTS \n");
     for (int i = 0; i < b->nbClients; i++) {
-
         if (b->clients[i].actif == 1) {
-
             float chiffreAffaires = 0;
-
             for (int j = 0; j < b->clients[i].nbCommandes; j++) {
-
                 if (b->clients[i].commandes[j].statut == LIVREE) {
                     chiffreAffaires += b->clients[i].commandes[j].montantTotal;
                 }
             }
-
             printf("\nID : %d\n", b->clients[i].idClient);
             printf("Nom : %s %s\n", b->clients[i].prenom, b->clients[i].nom);
             printf("Email : %s\n", b->clients[i].email);
@@ -177,6 +171,7 @@ void afficherClients(Boutique *b) {
 /* Ajouter des points de fidelite */
 
 void ajouterPoints(Boutique *b, int idClient, int points) {
+    printf("erreur");
 
 }
 
@@ -184,4 +179,5 @@ void ajouterPoints(Boutique *b, int idClient, int points) {
 /* Retirer des points de fidelite */
 
 void retirerPoints(Boutique *b, int idClient, int points) {
+    printf("erreur");
 }
