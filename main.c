@@ -19,7 +19,9 @@
  * ========================================================================== */
 #include <stdio.h>
 #include <stdlib.h>
-
+#include "types.h"
+#include "commande.h"
+#include <string.h>
 /* --------------------------------------------------------------------------
  * Lecture d'un choix au clavier (version simple, suffisant pour demarrer).
  * A remplacer plus tard par une saisie securisee (module utils.c).
@@ -53,7 +55,6 @@ void supprimerClient(void)     { printf("  [STUB] supprimerClient - a implemente
 void afficherListeClients(void){ printf("  [STUB] afficherListeClients - a implementer dans client.c\n"); }
 
 /* --- Module COMMANDES ----------------------------------------------------- */
-void creerCommande(void)       { printf("  [STUB] creerCommande - a implementer dans commande.c\n"); }
 void afficherUneCommande(void) { printf("  [STUB] afficherUneCommande - a implementer dans commande.c\n"); }
 
 /* --- Module STATISTIQUES -------------------------------------------------- */
@@ -114,7 +115,7 @@ static void menuClients(void)
     } while (choix != 0);
 }
 
-static void menuCommandes(void)
+static void menuCommandes(Boutique *boutique)
 {
     int choix;
     do
@@ -127,7 +128,7 @@ static void menuCommandes(void)
 
         switch (choix)
         {
-            case 1: creerCommande();       break;
+            case 1: menuCreerCommande(boutique); break;
             case 2: afficherUneCommande(); break;
             case 0:                        break;
             default: printf("  [!] Choix invalide.\n"); break;
@@ -161,8 +162,24 @@ int main(void)
 {
     int choix;
 
+    /* Création et initialisation de la boutique */
+    Boutique boutique = {0};
+
+    strcpy(boutique.nom, "ShopFlow");
+
+    boutique.produits = malloc(10 * sizeof(Produit));
+    boutique.nbProduits = 0;
+    boutique.capaciteProduits = 10;
+
+    boutique.clients = malloc(8 * sizeof(Client));
+    boutique.nbClients = 0;
+    boutique.capaciteClients = 8;
+
+    boutique.numeroSuivant = 8;
+    boutique.idClientSuivant = 1007;
+
     printf("==============================================\n");
-    printf("  SHOPFLOW - Boutique en ligne (squelette)\n");
+    printf("  SHOPFLOW - Boutique en ligne\n");
     printf("==============================================\n");
 
     do
@@ -173,18 +190,24 @@ int main(void)
         printf("  3. Gestion des commandes\n");
         printf("  4. Statistiques\n");
         printf("  0. Quitter\n");
+
         choix = lireChoix();
 
         switch (choix)
         {
-            case 1: menuProduits();     break;
-            case 2: menuClients();      break;
-            case 3: menuCommandes();    break;
-            case 4: menuStatistiques(); break;
-            case 0: printf("\n  Au revoir !\n"); break;
-            default: printf("  [!] Choix invalide.\n"); break;
+        case 1: menuProduits(); break;
+        case 2: menuClients(); break;
+        case 3: menuCommandes(&boutique); break;
+        case 4: menuStatistiques(); break;
+        case 0: printf("\n  Au revoir !\n"); break;
+        default: printf("  [!] Choix invalide.\n"); break;
         }
+
     } while (choix != 0);
+
+    /* Libération de la mémoire */
+    free(boutique.produits);
+    free(boutique.clients);
 
     return EXIT_SUCCESS;
 }
