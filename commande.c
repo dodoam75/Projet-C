@@ -233,3 +233,45 @@ void menuCreerCommande(Boutique *boutique)
         printf("Erreur : impossible de creer la commande.\n");
     }
 }
+void afficherUneCommande(Boutique *boutique)
+{
+    int idClient;
+    int numeroCommande;
+
+    printf("\n===== AFFICHER UNE COMMANDE =====\n");
+
+    printf("Identifiant du client : ");
+    scanf("%d", &idClient);
+
+    printf("Numero de la commande : ");
+    scanf("%d", &numeroCommande);
+
+    Commande *commande = chercherCommande(boutique, idClient, numeroCommande);
+
+    if (commande == NULL)
+    {
+        printf("\nErreur : commande introuvable !\n");
+        return;
+    }
+
+    printf("\n========== DETAILS DE LA COMMANDE ==========\n");
+    printf("Numero de commande : %d\n", commande->numero);
+    printf("Identifiant client : %d\n", commande->idClient);
+
+    printf("Date : %02d/%02d/%04d\n",
+           commande->dateCommande.jour,
+           commande->dateCommande.mois,
+           commande->dateCommande.annee);
+
+    printf("Statut : %s\n", commande->statut);
+
+    printf("-------------------------------------------\n");
+    printf("Montant brut HT : %.2f euros\n", commande->montantBrutHT);
+    printf("Remise : %.2f euros\n", commande->montantRemise);
+    printf("Montant HT : %.2f euros\n", commande->montantHT);
+    printf("TVA : %.2f euros\n", commande->montantTVA);
+    printf("Frais de livraison : %.2f euros\n", commande->fraisPort);
+    printf("Montant TTC : %.2f euros\n", commande->montantTTC);
+
+    printf("===========================================\n");
+}
