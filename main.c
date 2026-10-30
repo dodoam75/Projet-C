@@ -54,7 +54,7 @@ void modifierClient(void)      { printf("  [STUB] modifierClient - a implementer
 void supprimerClient(void)     { printf("  [STUB] supprimerClient - a implementer dans client.c\n"); }
 void afficherListeClients(void){ printf("  [STUB] afficherListeClients - a implementer dans client.c\n"); }3
 
-/* --- Module STATISTIQUES -------------------------------------------------- */
+/*  Module STATISTIQUES */
 void afficherChiffreAffaires(void) { printf("  [STUB] afficherChiffreAffaires - a implementer dans statistique.c\n"); }
 
 /* ==========================================================================

@@ -102,7 +102,7 @@ typedef struct {
     int actif;
 } Client;
 
-/* Structure Boutique */
+/* Structure Boutique si qqun peut corriger :* */
 typedef struct {
     char nom[50];
 
