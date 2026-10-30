@@ -7,114 +7,138 @@
  * UTILISE PAR : main.c (menu), commande.c (lecture/mise a jour du stock),
  *        statistique.c (palmares produits).
  * ============================================================ */
-// types.h
+#ifndef PRODUIT_H
+#define PRODUIT_H
 
-#ifndef TYPES_H
-#define TYPES_H
+#include <stddef.h>
 
-/* Tailles maximales */
-#define MAX_NOM 50
-#define MAX_PRENOM 50
-#define MAX_EMAIL 80
-#define MAX_TELEPHONE 15
+/* ================================================================== */
+/*  Constantes                                                        */
+/* ================================================================== */
 
-/* Constantes métier */
-#define TVA 20.0
-#define FRAIS_PORT 5.90
-#define CAPACITE_INITIALE 4
+#define LG_REFERENCE    12
+#define LG_DESIGNATION  60
+#define LG_CATEGORIE    30
+#define LG_STATUT       20
 
-/* Structure Date */
-typedef struct {
-    int jour;
-    int mois;
-    int annee;
-} Date;
+#define STATUT_EN_COURS "EN_COURS"
+#define STATUT_EXPEDIEE "EXPEDIEE"
+#define STATUT_LIVREE   "LIVREE"
+#define STATUT_ANNULEE  "ANNULEE"
 
-/* Structure Adresse */
+/* ================================================================== */
+/*  Structures de données                                             */
+/* ================================================================== */
+
+typedef struct { int jour, mois, annee; } Date;
+
 typedef struct {
     char rue[80];
-    char codePostal[6];
     char ville[50];
+    char codePostal[6];
     char pays[50];
 } Adresse;
 
-/* Structure Produit */
 typedef struct {
-    char reference[12];
-    char designation[60];
-    char categorie[30];
+    char  reference[LG_REFERENCE];
+    char  designation[LG_DESIGNATION];
+    char  categorie[LG_CATEGORIE];
     float prixUnitaireHT;
-    int quantiteStock;
-    int seuilAlerte;
-    int actif;
+    int   quantiteStock;
+    int   seuilAlerte;
+    int   actif;                 /* 1 = actif, 0 = supprimé logiquement */
 } Produit;
 
-/* Structure LigneCommande */
 typedef struct {
-    char refProduit[12];
-    char designation[60];
-    int quantite;
+    char  refProduit[LG_REFERENCE];
+    char  designation[LG_DESIGNATION];
+    int   quantite;
     float prixUnitaireHT;
     float sousTotalHT;
 } LigneCommande;
 
-/* Structure Commande */
 typedef struct {
-    int numero;
-    int idClient;
-
-    Date dateCommande;
-
-    char statut[20];
-
-    int nbLignes;
-    int capaciteLignes;
+    int    numero;
+    int    idClient;
+    Date   dateCommande;
+    char   statut[LG_STATUT];
+    int    nbLignes;
+    int    capaciteLignes;
     LigneCommande *lignes;
-
-    float montantBrutHT;
-    float tauxRemise;
-    float montantRemise;
-    float montantHT;
-    float montantTVA;
-    float montantTTC;
-    float fraisPort;
-
+    float  montantBrutHT;
+    float  tauxRemise;
+    float  montantRemise;
+    float  montantHT;
+    float  montantTVA;
+    float  montantTTC;
+    float  fraisPort;
     Adresse adresseLivraison;
 } Commande;
 
-/* Structure Client */
 typedef struct {
-    int idClient;
-
-    char nom[MAX_NOM];
-    char prenom[MAX_PRENOM];
-    char email[MAX_EMAIL];
-    char telephone[MAX_TELEPHONE];
-
+    int     idClient;
+    char    nom[50];
+    char    prenom[50];
+    char    email[80];
+    char    telephone[15];
     Adresse adresse;
-
-    int pointsFidelite;
-
+    int     pointsFidelite;
+    int     nbCommandes;
+    int     capaciteCommandes;
     Commande *commandes;
-    int nbCommandes;
-    int capaciteCommandes;
-
-    int actif;
+    int     actif;
 } Client;
 
-/* Structure Boutique */
 typedef struct {
+    char     nom[50];
     Produit *produits;
-    int nbProduits;
-    int capaciteProduits;
-
-    Client *clients;
-    int nbClients;
-    int capaciteClients;
-
-    int numeroSuivant;
-    int idClientSuivant;
+    int      nbProduits;
+    int      capaciteProduits;
+    Client  *clients;
+    int      nbClients;
+    int      capaciteClients;
+    int      numeroSuivant;
+    int      idClientSuivant;
 } Boutique;
 
-#endif
+/* ================================================================== */
+/*  Saisie sécurisée                                                  */
+/* ================================================================== */
 
+/* Lit une chaîne non vide de moins de `taille` caractères (redemande sinon). */
+void   lireChaine(const char *invite, char *dest, size_t taille);
+/* Lit un entier dans [min, max]. */
+int    lireEntier(const char *invite, int min, int max);
+/* Lit un réel >= min (ou > min si minExclus). Accepte la virgule. */
+double lireReel(const char *invite, double min, int minExclus);
+
+/* ================================================================== */
+/*  Gestion des produits                                              */
+/* ================================================================== */
+
+/* Codes de retour */
+enum {
+    PRODUIT_OK = 0,
+    PRODUIT_DOUBLON = -1,
+    PRODUIT_MEMOIRE = -2,
+    PRODUIT_STOCK_INSUFFISANT = -3
+};
+
+/* --- Recherche interne --- */
+int      indexProduit(const Boutique *b, const char *reference);        /* -1 si absent (inclut les inactifs) */
+Produit *trouverProduitActif(Boutique *b, const char *reference);       /* NULL si absent ou inactif */
+
+/* --- Gestion du catalogue --- */
+int  ajouterProduitDonnees(Boutique *b, const Produit *p);  /* sans saisie : initialisation */
+void ajouterProduit(Boutique *b);                           /* avec saisie */
+void mettreAJourProduit(Boutique *b);
+void supprimerProduit(Boutique *b);                         /* suppression logique */
+void afficherProduits(const Boutique *b);
+void rechercherProduit(const Boutique *b);
+void afficherAlertesStock(const Boutique *b);
+
+/* --- Gestion du stock --- */
+int  retirerStock(Produit *p, int quantite);     /* PRODUIT_OK ou PRODUIT_STOCK_INSUFFISANT */
+void reintegrerStock(Produit *p, int quantite);
+
+#endif

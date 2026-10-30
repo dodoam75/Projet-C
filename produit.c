@@ -8,13 +8,20 @@
  *        - afficherAlertesStock : stock <= seuilAlerte
  * ETAT : trouverProduit() est fait, le reste est en TODO.
  * ============================================================ */
-// utils.c
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include <errno.h>
 #include <math.h>
-#include "utils.h"
+#include "produit.h"
+
+#define CAPACITE_INITIALE_PRODUITS 4
+#define STOCK_MAX 1000000
+
+/* ================================================================== */
+/*  SAISIE SÉCURISÉE                                                  */
+/* ================================================================== */
 
 /* Lit une ligne ; renvoie 1 si OK, 0 si trop longue. Arrêt propre sur EOF. */
 static int lireLigne(char *dest, size_t taille)
@@ -90,20 +97,10 @@ double lireReel(const char *invite, double min, int minExclus)
         return v;
     }
 }
-// produit.c
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-#include "produit.h"
-#include "utils.h"
 
-#define CAPACITE_INITIALE_PRODUITS 4
-#define STOCK_MAX 1000000
-
-/* ------------------------------------------------------------------ */
-/*  Fonctions internes                                                */
-/* ------------------------------------------------------------------ */
+/* ================================================================== */
+/*  FONCTIONS INTERNES (PRODUITS)                                     */
+/* ================================================================== */
 
 /* Double la capacité du catalogue si nécessaire. En cas d'échec de realloc,
    l'ancien tableau reste valide (on n'écrase pas b->produits). */
@@ -171,9 +168,9 @@ static void afficherLigneProduit(const Produit *p)
            (p->quantiteStock <= p->seuilAlerte) ? "<< STOCK BAS" : "");
 }
 
-/* ------------------------------------------------------------------ */
-/*  Recherche                                                         */
-/* ------------------------------------------------------------------ */
+/* ================================================================== */
+/*  RECHERCHE                                                         */
+/* ================================================================== */
 
 int indexProduit(const Boutique *b, const char *reference)
 {
@@ -191,9 +188,9 @@ Produit *trouverProduitActif(Boutique *b, const char *reference)
     return &b->produits[i];
 }
 
-/* ------------------------------------------------------------------ */
-/*  Ajout                                                             */
-/* ------------------------------------------------------------------ */
+/* ================================================================== */
+/*  AJOUT                                                             */
+/* ================================================================== */
 
 /* Ajout sans saisie (initialisation, tests). Unicité contrôlée sur TOUS
    les produits, y compris désactivés. */
@@ -232,9 +229,9 @@ void ajouterProduit(Boutique *b)
     }
 }
 
-/* ------------------------------------------------------------------ */
-/*  Mise à jour                                                       */
-/* ------------------------------------------------------------------ */
+/* ================================================================== */
+/*  MISE À JOUR                                                       */
+/* ================================================================== */
 
 /* Le prix modifié n'affecte pas les commandes existantes : leurs lignes
    conservent le prix figé au moment de la vente. */
@@ -262,9 +259,9 @@ void mettreAJourProduit(Boutique *b)
     printf("Produit %s mis a jour.\n", p->reference);
 }
 
-/* ------------------------------------------------------------------ */
-/*  Suppression logique                                               */
-/* ------------------------------------------------------------------ */
+/* ================================================================== */
+/*  SUPPRESSION LOGIQUE                                               */
+/* ================================================================== */
 
 void supprimerProduit(Boutique *b)
 {
@@ -286,9 +283,9 @@ void supprimerProduit(Boutique *b)
     printf("Produit %s supprime (logiquement).\n", ref);
 }
 
-/* ------------------------------------------------------------------ */
-/*  Affichages                                                        */
-/* ------------------------------------------------------------------ */
+/* ================================================================== */
+/*  AFFICHAGES                                                        */
+/* ================================================================== */
 
 void afficherProduits(const Boutique *b)
 {
@@ -362,9 +359,9 @@ void afficherAlertesStock(const Boutique *b)
     else        printf("\n%d produit(s) a reapprovisionner.\n", n);
 }
 
-/* ------------------------------------------------------------------ */
-/*  Gestion du stock (appelée par commande.c)                         */
-/* ------------------------------------------------------------------ */
+/* ================================================================== */
+/*  GESTION DU STOCK                                                  */
+/* ================================================================== */
 
 int retirerStock(Produit *p, int quantite)
 {
