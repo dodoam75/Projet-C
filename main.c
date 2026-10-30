@@ -56,7 +56,7 @@ void afficherListeClients(void){ printf("  [STUB] afficherListeClients - a imple
 void creerCommande(void)       { printf("  [STUB] creerCommande - a implementer dans commande.c\n"); }
 void afficherUneCommande(void) { printf("  [STUB] afficherUneCommande - a implementer dans commande.c\n"); }
 
-/* --- Module STATISTIQUES -------------------------------------------------- */
+/*  Module STATISTIQUES */
 void afficherChiffreAffaires(void) { printf("  [STUB] afficherChiffreAffaires - a implementer dans statistique.c\n"); }
 
 /* ==========================================================================

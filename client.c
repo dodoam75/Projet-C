@@ -49,6 +49,7 @@ int emailExiste(Boutique *b, char email[]) {
 /* Ajouter un client */
 
 int ajouterClient(Boutique *b, Client nouveauClient) {
+
     if (emailExiste(b, nouveauClient.email)) {
         return 0;
     }
@@ -57,6 +58,7 @@ int ajouterClient(Boutique *b, Client nouveauClient) {
         int nouvelleCapacite = b->capaciteClients + 5;
 
         Client *temp = realloc(b->clients, nouvelleCapacite * sizeof(Client));
+
         if (temp == NULL) {
             return 0;
         }
@@ -79,11 +81,12 @@ int ajouterClient(Boutique *b, Client nouveauClient) {
 
     return 1;
 }
-/* Modifier un client */
+
 
 /* Modifier un client */
 
 int modifierClient(Boutique *b, int idClient, Client modification) {
+
     int index = trouverClient(b, idClient);
 
     if (index == 0) {
@@ -92,30 +95,93 @@ int modifierClient(Boutique *b, int idClient, Client modification) {
 
     index--;
 
-    return 0;
+    if (strcmp(b->clients[index].email, modification.email) != 0 &&
+        emailExiste(b, modification.email)) {
+        return 0;
+    }
+
+    strcpy(b->clients[index].nom, modification.nom);
+    strcpy(b->clients[index].prenom, modification.prenom);
+    strcpy(b->clients[index].email, modification.email);
+    strcpy(b->clients[index].telephone, modification.telephone);
+
+    b->clients[index].adresse = modification.adresse;
+
+    return 1;
 }
 
 
 /* Supprimer un client : suppression logique */
-void supprimerClient(Boutique *b, int idClient) {
+
+int supprimerClient(Boutique *b, int idClient) {
+
     int index = trouverClient(b, idClient);
-    if (index != -1) {
-        b->clients[index].actif = 0; // suppression logique donc du client
+
+    if (index == 0) {
+        return 0;
+    }
+
+    index--;
+
+    if (b->clients[index].actif == 0) {
+        return 0;
+    }
+
+    for (int i = 0; i < b->clients[index].nbCommandes; i++) {
+
+        if (b->clients[index].commandes[i].statut != ANNULEE) {
+            return 0;
+        }
+    }
+
+    b->clients[index].actif = 0;
+
+    return 1;
+}
+
+
+/* Afficher la liste des clients */
+
+void afficherClients(Boutique *b) {
+
+    printf("\n===== LISTE DES CLIENTS =====\n");
+
+    for (int i = 0; i < b->nbClients; i++) {
+
+        if (b->clients[i].actif == 1) {
+
+            float chiffreAffaires = 0;
+
+            for (int j = 0; j < b->clients[i].nbCommandes; j++) {
+
+                if (b->clients[i].commandes[j].statut == LIVREE) {
+                    chiffreAffaires += b->clients[i].commandes[j].montantTotal;
+                }
+            }
+
+            printf("\nID : %d\n", b->clients[i].idClient);
+            printf("Nom : %s %s\n", b->clients[i].prenom, b->clients[i].nom);
+            printf("Email : %s\n", b->clients[i].email);
+            printf("Telephone : %s\n", b->clients[i].telephone);
+            printf("Nombre de commandes : %d\n", b->clients[i].nbCommandes);
+            printf("Chiffre d'affaires : %.2f euros\n", chiffreAffaires);
+        }
     }
 }
 
-/* Afficher la liste des clients */
-void afficherClients(Boutique *b) {
-}
+
+/* Afficher un client et son historique de commandes */
+
+
 
 /* Ajouter des points de fidelite */
 
-void ajouterPointsFidelite(Boutique *b, int idClient, int points) {
+void ajouterPoints(Boutique *b, int idClient, int points) {
+
 }
 
 
 /* Retirer des points de fidelite */
 
-void retirerPointsFidelite(Boutique *b, int idClient, int points) {
-
-
+void retirerPoints(Boutique *b, int idClient, int points) {
+}
