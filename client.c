@@ -27,7 +27,6 @@ int trouverClient(Boutique *b, int idClient) {
             return i;
         }
     }
-
     return -1;
 }
 
