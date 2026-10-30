@@ -22,7 +22,7 @@ int modifierClient(Boutique *b, int idClient, Client modification);
 int supprimerClient(Boutique *b, int idClient);
 // Afficher tous les clients
 void afficherClients(Boutique *b);
-// Afficher un client et son historique
+// Afficher un client et son historique d'achats
 void afficherClient(Boutique *b, int idClient);
 // Ajouter des points de fidélité
 void ajouterPoints(Boutique *b, int idClient, int points);
