@@ -54,43 +54,6 @@ int emailExiste(Boutique *b, char email[]) {
 
 /* Modifier un client */
 
-int modifierClient(Boutique *b, int idClient, Client modification) {
-
-    int index = trouverClient(b, idClient);
-
-    if (index == -1 || b->clients[index].actif == 0) {
-
-        printf("Client introuvable.\n");
-        return 0;
-    }
-
-    if (emailExiste(b, modification.email) &&
-        strcmp(b->clients[index].email, modification.email) != 0) {
-
-        printf("Erreur : email deja utilise.\n");
-        return 0;
-    }
-
-    if (strlen(modification.nom) == 0 ||
-        strlen(modification.prenom) == 0 ||
-        strlen(modification.email) == 0 ||
-        strlen(modification.telephone) == 0) {
-
-        printf("Erreur : informations manquantes.\n");
-        return 0;
-    }
-
-    strcpy(b->clients[index].nom, modification.nom);
-    strcpy(b->clients[index].prenom, modification.prenom);
-    strcpy(b->clients[index].email, modification.email);
-    strcpy(b->clients[index].telephone, modification.telephone);
-
-    b->clients[index].adresse = modification.adresse;
-
-    printf("Client modifie avec succes.\n");
-
-    return 1;
-}
 
 
 /* Supprimer un client : suppression logique */
