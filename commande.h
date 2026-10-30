@@ -41,4 +41,6 @@ void afficherCommande(Commande *commande);
 
 void menuCreerCommande(Boutique *boutique);
 
+void afficherUneCommande(Boutique *boutique);
+
 #endif
