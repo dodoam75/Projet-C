@@ -52,10 +52,7 @@ void afficherCatalogue(void)   { printf("  [STUB] afficherCatalogue - a implemen
 void ajouterClient(void)       { printf("  [STUB] ajouterClient - a implementer dans client.c\n"); }
 void modifierClient(void)      { printf("  [STUB] modifierClient - a implementer dans client.c\n"); }
 void supprimerClient(void)     { printf("  [STUB] supprimerClient - a implementer dans client.c\n"); }
-void afficherListeClients(void){ printf("  [STUB] afficherListeClients - a implementer dans client.c\n"); }
-
-/* --- Module COMMANDES ----------------------------------------------------- */
-void afficherUneCommande(void) { printf("  [STUB] afficherUneCommande - a implementer dans commande.c\n"); }
+void afficherListeClients(void){ printf("  [STUB] afficherListeClients - a implementer dans client.c\n"); }3
 
 /* --- Module STATISTIQUES -------------------------------------------------- */
 void afficherChiffreAffaires(void) { printf("  [STUB] afficherChiffreAffaires - a implementer dans statistique.c\n"); }
@@ -129,7 +126,7 @@ static void menuCommandes(Boutique *boutique)
         switch (choix)
         {
             case 1: menuCreerCommande(boutique); break;
-            case 2: afficherUneCommande(); break;
+            case 2: afficherUneCommande(boutique); break;
             case 0:                        break;
             default: printf("  [!] Choix invalide.\n"); break;
         }
