@@ -1,12 +1,5 @@
 /* ============================================================
  * produit.c - Implementation du catalogue produits
- * ------------------------------------------------------------
- * ROLE : gere le tableau dynamique b->produits (malloc/realloc).
- *        - ajouterProduit : unicite de la reference (inactifs inclus)
- *        - supprimerProduit : suppression LOGIQUE (actif = 0), refusee si
- *          le produit est dans une commande non annulee
- *        - afficherAlertesStock : stock <= seuilAlerte
- * ETAT : trouverProduit() est fait, le reste est en TODO.
  * ============================================================ */
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,16 +7,16 @@
 #include <ctype.h>
 #include <errno.h>
 #include <math.h>
+
 #include "produit.h"
 
 #define CAPACITE_INITIALE_PRODUITS 4
 #define STOCK_MAX 1000000
 
-/* ================================================================== */
-/*  SAISIE SÉCURISÉE                                                  */
-/* ================================================================== */
+/* ============================================================
+ * SAISIE SECURISEE
+ * ============================================================ */
 
-/* Lit une ligne ; renvoie 1 si OK, 0 si trop longue. Arrêt propre sur EOF. */
 static int lireLigne(char *dest, size_t taille)
 {
     char tampon[512];
@@ -32,14 +25,16 @@ static int lireLigne(char *dest, size_t taille)
         fprintf(stderr, "\nFin de saisie (EOF) : arret du programme.\n");
         exit(EXIT_FAILURE);
     }
+
     size_t n = strlen(tampon);
     if (n > 0 && tampon[n - 1] == '\n') {
         tampon[--n] = '\0';
-    } else {                         /* ligne plus longue que le tampon : on vide */
+    } else {
         int c;
         while ((c = getchar()) != '\n' && c != EOF) { }
         return 0;
     }
+
     if (n >= taille) return 0;
     strcpy(dest, tampon);
     return 1;
@@ -50,9 +45,11 @@ void lireChaine(const char *invite, char *dest, size_t taille)
     for (;;) {
         printf("%s", invite);
         if (!lireLigne(dest, taille)) {
-            printf("Erreur : saisie trop longue (%zu caracteres max).\n", taille - 1);
+            printf("Erreur : saisie trop longue (%zu caracteres max).\n",
+                   taille - 1);
             continue;
         }
+
         if (dest[strspn(dest, " \t")] == '\0') {
             printf("Erreur : la saisie ne peut pas etre vide.\n");
             continue;
@@ -64,140 +61,173 @@ void lireChaine(const char *invite, char *dest, size_t taille)
 int lireEntier(const char *invite, int min, int max)
 {
     char buf[64];
+
     for (;;) {
         printf("%s", invite);
-        if (!lireLigne(buf, sizeof buf)) { printf("Saisie invalide.\n"); continue; }
-        char *fin;
-        errno = 0;
-        long v = strtol(buf, &fin, 10);
-        if (fin == buf || *fin != '\0' || errno == ERANGE || v < min || v > max) {
-            printf("Erreur : entier compris entre %d et %d attendu.\n", min, max);
+        if (!lireLigne(buf, sizeof buf)) {
+            printf("Saisie invalide.\n");
             continue;
         }
-        return (int)v;
+
+        char *fin;
+        errno = 0;
+        long valeur = strtol(buf, &fin, 10);
+
+        if (fin == buf || *fin != '\0' || errno == ERANGE ||
+            valeur < min || valeur > max) {
+            printf("Erreur : entier compris entre %d et %d attendu.\n",
+                   min, max);
+            continue;
+        }
+        return (int)valeur;
     }
 }
 
 double lireReel(const char *invite, double min, int minExclus)
 {
     char buf[64];
+
     for (;;) {
         printf("%s", invite);
-        if (!lireLigne(buf, sizeof buf)) { printf("Saisie invalide.\n"); continue; }
-        for (char *p = buf; *p; p++) if (*p == ',') *p = '.';
-        char *fin;
-        errno = 0;
-        double v = strtod(buf, &fin);
-        if (fin == buf || *fin != '\0' || errno == ERANGE || !isfinite(v)
-            || v < min || (minExclus && v <= min) || v > 1e9) {
-            printf("Erreur : nombre %s %.2f attendu.\n",
-                   minExclus ? "strictement superieur a" : "superieur ou egal a", min);
+        if (!lireLigne(buf, sizeof buf)) {
+            printf("Saisie invalide.\n");
             continue;
         }
-        return v;
+
+        for (char *p = buf; *p; ++p) {
+            if (*p == ',') *p = '.';
+        }
+
+        char *fin;
+        errno = 0;
+        double valeur = strtod(buf, &fin);
+
+        if (fin == buf || *fin != '\0' || errno == ERANGE ||
+            !isfinite(valeur) ||
+            valeur < min || (minExclus && valeur <= min) ||
+            valeur > 1e9) {
+            printf("Erreur : nombre %s %.2f attendu.\n",
+                   minExclus ? "strictement superieur a"
+                             : "superieur ou egal a", min);
+            continue;
+        }
+        return valeur;
     }
 }
 
-/* ================================================================== */
-/*  FONCTIONS INTERNES (PRODUITS)                                     */
-/* ================================================================== */
+/* ============================================================
+ * FONCTIONS INTERNES
+ * ============================================================ */
 
-/* Double la capacité du catalogue si nécessaire. En cas d'échec de realloc,
-   l'ancien tableau reste valide (on n'écrase pas b->produits). */
 static int assurerCapaciteProduits(Boutique *b)
 {
     if (b->nbProduits < b->capaciteProduits) return 0;
 
-    int nouvelle = (b->capaciteProduits > 0) ? b->capaciteProduits * 2
-                                             : CAPACITE_INITIALE_PRODUITS;
-    Produit *tmp = (Produit *)realloc(b->produits, (size_t)nouvelle * sizeof(Produit));
+    int nouvelleCapacite =
+        (b->capaciteProduits > 0)
+            ? b->capaciteProduits * 2
+            : CAPACITE_INITIALE_PRODUITS;
+
+    Produit *tmp = realloc(
+        b->produits, (size_t)nouvelleCapacite * sizeof(Produit));
+
     if (tmp == NULL) return -1;
 
     b->produits = tmp;
-    b->capaciteProduits = nouvelle;
+    b->capaciteProduits = nouvelleCapacite;
     return 0;
 }
 
-/* Un produit est « utilisé » s'il figure dans une commande non annulée
-   (clients désactivés inclus). */
+/* Un produit est utilise s'il apparait dans une commande non annulee. */
 static int produitUtilise(const Boutique *b, const char *reference)
 {
-    for (int i = 0; i < b->nbClients; i++) {
-        const Client *cl = &b->clients[i];
-        for (int j = 0; j < cl->nbCommandes; j++) {
-            const Commande *c = &cl->commandes[j];
-            if (strcmp(c->statut, STATUT_ANNULEE) == 0) continue;
-            for (int k = 0; k < c->nbLignes; k++)
-                if (strcmp(c->lignes[k].refProduit, reference) == 0) return 1;
+    for (int i = 0; i < b->nbClients; ++i) {
+        const Client *client = &b->clients[i];
+
+        for (int j = 0; j < client->nbCommandes; ++j) {
+            const Commande *commande = &client->commandes[j];
+
+            if (strcmp(commande->statut, STATUT_ANNULEE) == 0)
+                continue;
+
+            for (int k = 0; k < commande->nbLignes; ++k) {
+                if (strcmp(commande->lignes[k].refProduit, reference) == 0)
+                    return 1;
+            }
         }
     }
     return 0;
 }
 
-static void versMinuscules(char *dst, const char *src, size_t taille)
+static void versMinuscules(char *dest, const char *src, size_t taille)
 {
     size_t i;
-    for (i = 0; i + 1 < taille && src[i] != '\0'; i++)
-        dst[i] = (char)tolower((unsigned char)src[i]);
-    dst[i] = '\0';
+    for (i = 0; i + 1 < taille && src[i] != '\0'; ++i) {
+        dest[i] = (char)tolower((unsigned char)src[i]);
+    }
+    dest[i] = '\0';
 }
 
-/* Recherche insensible à la casse d'un mot-clé dans un texte. */
 static int contientMotCle(const char *texte, const char *mot)
 {
-    char t[LG_DESIGNATION], m[LG_DESIGNATION];
-    versMinuscules(t, texte, sizeof t);
-    versMinuscules(m, mot, sizeof m);
-    return strstr(t, m) != NULL;
+    char texteMin[LG_DESIGNATION];
+    char motMin[LG_DESIGNATION];
+
+    versMinuscules(texteMin, texte, sizeof texteMin);
+    versMinuscules(motMin, mot, sizeof motMin);
+    return strstr(texteMin, motMin) != NULL;
 }
 
-static void afficherEnTeteProduits(void)
+static void afficherEnteteProduits(void)
 {
     printf("\n%-12s %-24s %-14s %10s %6s %6s %12s %s\n",
-           "Reference", "Designation", "Categorie", "Prix HT", "Stock", "Seuil",
-           "Valeur stock", "Alerte");
+           "Reference", "Designation", "Categorie", "Prix HT",
+           "Stock", "Seuil", "Valeur stock", "Alerte");
     printf("-----------------------------------------------------------------------------------------------\n");
 }
 
 static void afficherLigneProduit(const Produit *p)
 {
-    double valeur = (double)p->prixUnitaireHT * p->quantiteStock;
+    double valeurStock = (double)p->prixUnitaireHT * p->quantiteStock;
+
     printf("%-12s %-24.24s %-14.14s %10.2f %6d %6d %12.2f %s\n",
-           p->reference, p->designation, p->categorie, p->prixUnitaireHT,
-           p->quantiteStock, p->seuilAlerte, valeur,
-           (p->quantiteStock <= p->seuilAlerte) ? "<< STOCK BAS" : "");
+           p->reference, p->designation, p->categorie,
+           p->prixUnitaireHT, p->quantiteStock, p->seuilAlerte,
+           valeurStock,
+           p->quantiteStock <= p->seuilAlerte ? "<< STOCK BAS" : "");
 }
 
-/* ================================================================== */
-/*  RECHERCHE                                                         */
-/* ================================================================== */
+/* ============================================================
+ * RECHERCHE
+ * ============================================================ */
 
 int indexProduit(const Boutique *b, const char *reference)
 {
-    for (int i = 0; i < b->nbProduits; i++)
-        if (strcmp(b->produits[i].reference, reference) == 0) return i;
+    if (b == NULL || reference == NULL) return -1;
+
+    for (int i = 0; i < b->nbProduits; ++i) {
+        if (strcmp(b->produits[i].reference, reference) == 0)
+            return i;
+    }
     return -1;
 }
 
-/* Attention : le pointeur renvoyé devient invalide si le catalogue est
-   ensuite agrandi (realloc). Ne pas le conserver après un ajout. */
 Produit *trouverProduitActif(Boutique *b, const char *reference)
 {
-    int i = indexProduit(b, reference);
-    if (i < 0 || !b->produits[i].actif) return NULL;
-    return &b->produits[i];
+    int index = indexProduit(b, reference);
+    if (index < 0 || !b->produits[index].actif) return NULL;
+    return &b->produits[index];
 }
 
-/* ================================================================== */
-/*  AJOUT                                                             */
-/* ================================================================== */
+/* ============================================================
+ * AJOUT
+ * ============================================================ */
 
-/* Ajout sans saisie (initialisation, tests). Unicité contrôlée sur TOUS
-   les produits, y compris désactivés. */
 int ajouterProduitDonnees(Boutique *b, const Produit *p)
 {
+    if (b == NULL || p == NULL) return PRODUIT_MEMOIRE;
     if (indexProduit(b, p->reference) != -1) return PRODUIT_DOUBLON;
-    if (assurerCapaciteProduits(b) != 0)     return PRODUIT_MEMOIRE;
+    if (assurerCapaciteProduits(b) != 0) return PRODUIT_MEMOIRE;
 
     b->produits[b->nbProduits++] = *p;
     return PRODUIT_OK;
@@ -205,46 +235,59 @@ int ajouterProduitDonnees(Boutique *b, const Produit *p)
 
 void ajouterProduit(Boutique *b)
 {
+    if (b == NULL) return;
+
     Produit p;
     memset(&p, 0, sizeof p);
 
     printf("\n--- Ajout d'un produit ---\n");
 
     for (;;) {
-        lireChaine("Reference (ex. PRD-0009) : ", p.reference, sizeof p.reference);
+        lireChaine("Reference (ex. PRD-0009) : ",
+                   p.reference, sizeof p.reference);
+
         if (indexProduit(b, p.reference) == -1) break;
         printf("Erreur : cette reference existe deja (meme desactivee).\n");
     }
+
     lireChaine("Designation : ", p.designation, sizeof p.designation);
     lireChaine("Categorie   : ", p.categorie, sizeof p.categorie);
+
     p.prixUnitaireHT = (float)lireReel("Prix unitaire HT (> 0) : ", 0.0, 1);
-    p.quantiteStock  = lireEntier("Stock initial (>= 0)        : ", 0, STOCK_MAX);
-    p.seuilAlerte    = lireEntier("Seuil d'alerte (>= 0)       : ", 0, STOCK_MAX);
+    p.quantiteStock = lireEntier("Stock initial (>= 0) : ", 0, STOCK_MAX);
+    p.seuilAlerte = lireEntier("Seuil d'alerte (>= 0) : ", 0, STOCK_MAX);
     p.actif = 1;
 
     switch (ajouterProduitDonnees(b, &p)) {
-        case PRODUIT_OK:      printf("Produit %s ajoute.\n", p.reference); break;
-        case PRODUIT_DOUBLON: printf("Erreur : reference deja utilisee.\n"); break;
-        default:              printf("Erreur : memoire insuffisante, produit non ajoute.\n"); break;
+        case PRODUIT_OK:
+            printf("Produit %s ajoute.\n", p.reference);
+            break;
+        case PRODUIT_DOUBLON:
+            printf("Erreur : reference deja utilisee.\n");
+            break;
+        default:
+            printf("Erreur : memoire insuffisante, produit non ajoute.\n");
+            break;
     }
 }
 
-/* ================================================================== */
-/*  MISE À JOUR                                                       */
-/* ================================================================== */
+/* ============================================================
+ * MODIFICATION
+ * ============================================================ */
 
-/* Le prix modifié n'affecte pas les commandes existantes : leurs lignes
-   conservent le prix figé au moment de la vente. */
-void mettreAJourProduit(Boutique *b)
+void modifierProduit(Boutique *b)
 {
-    char ref[LG_REFERENCE];
+    if (b == NULL) return;
 
-    printf("\n--- Mise a jour d'un produit ---\n");
-    lireChaine("Reference du produit : ", ref, sizeof ref);
+    char reference[LG_REFERENCE];
 
-    Produit *p = trouverProduitActif(b, ref);
+    printf("\n--- Modification d'un produit ---\n");
+    lireChaine("Reference du produit : ", reference, sizeof reference);
+
+    Produit *p = trouverProduitActif(b, reference);
     if (p == NULL) {
-        printf("Erreur : aucun produit actif avec la reference %s.\n", ref);
+        printf("Erreur : aucun produit actif avec la reference %s.\n",
+               reference);
         return;
     }
 
@@ -252,91 +295,126 @@ void mettreAJourProduit(Boutique *b)
            p->reference, p->designation, p->prixUnitaireHT,
            p->quantiteStock, p->seuilAlerte);
 
-    p->prixUnitaireHT = (float)lireReel("Nouveau prix HT (> 0)       : ", 0.0, 1);
-    p->quantiteStock  = lireEntier("Nouveau stock (>= 0)        : ", 0, STOCK_MAX);
-    p->seuilAlerte    = lireEntier("Nouveau seuil d'alerte (>=0): ", 0, STOCK_MAX);
+    p->prixUnitaireHT =
+        (float)lireReel("Nouveau prix HT (> 0) : ", 0.0, 1);
+    p->quantiteStock =
+        lireEntier("Nouveau stock (>= 0) : ", 0, STOCK_MAX);
+    p->seuilAlerte =
+        lireEntier("Nouveau seuil d'alerte (>= 0) : ", 0, STOCK_MAX);
 
     printf("Produit %s mis a jour.\n", p->reference);
 }
 
-/* ================================================================== */
-/*  SUPPRESSION LOGIQUE                                               */
-/* ================================================================== */
+/* Ancien nom conserve pour compatibilite. */
+void mettreAJourProduit(Boutique *b)
+{
+    modifierProduit(b);
+}
+
+/* ============================================================
+ * SUPPRESSION LOGIQUE
+ * ============================================================ */
 
 void supprimerProduit(Boutique *b)
 {
-    char ref[LG_REFERENCE];
+    if (b == NULL) return;
+
+    char reference[LG_REFERENCE];
 
     printf("\n--- Suppression d'un produit ---\n");
-    lireChaine("Reference du produit : ", ref, sizeof ref);
+    lireChaine("Reference du produit : ", reference, sizeof reference);
 
-    Produit *p = trouverProduitActif(b, ref);
+    Produit *p = trouverProduitActif(b, reference);
     if (p == NULL) {
-        printf("Erreur : aucun produit actif avec la reference %s.\n", ref);
+        printf("Erreur : aucun produit actif avec la reference %s.\n",
+               reference);
         return;
     }
-    if (produitUtilise(b, ref)) {
-        printf("Suppression refusee : %s figure dans une commande non annulee.\n", ref);
+
+    if (produitUtilise(b, reference)) {
+        printf("Suppression refusee : %s figure dans une commande non annulee.\n",
+               reference);
         return;
     }
-    p->actif = 0;   /* suppression logique : l'enregistrement reste en memoire */
-    printf("Produit %s supprime (logiquement).\n", ref);
+
+    p->actif = 0;
+    printf("Produit %s supprime (logiquement).\n", reference);
 }
 
-/* ================================================================== */
-/*  AFFICHAGES                                                        */
-/* ================================================================== */
+/* ============================================================
+ * AFFICHAGE ET RECHERCHE
+ * ============================================================ */
 
-void afficherProduits(const Boutique *b)
+void afficherCatalogue(const Boutique *b)
 {
+    if (b == NULL) return;
+
     double total = 0.0;
-    int n = 0;
+    int nombre = 0;
 
     printf("\n=== CATALOGUE DES PRODUITS ===");
-    afficherEnTeteProduits();
+    afficherEnteteProduits();
 
-    for (int i = 0; i < b->nbProduits; i++) {
+    for (int i = 0; i < b->nbProduits; ++i) {
         const Produit *p = &b->produits[i];
         if (!p->actif) continue;
+
         afficherLigneProduit(p);
         total += (double)p->prixUnitaireHT * p->quantiteStock;
-        n++;
+        ++nombre;
     }
 
-    if (n == 0)
+    if (nombre == 0) {
         printf("(catalogue vide)\n");
-    else
-        printf("\n%d produit(s) - valorisation totale du stock : %.2f EUR HT\n", n, total);
+    } else {
+        printf("\n%d produit(s) - valorisation totale du stock : %.2f EUR HT\n",
+               nombre, total);
+    }
+}
+
+/* Ancien nom conserve pour compatibilite. */
+void afficherProduits(const Boutique *b)
+{
+    afficherCatalogue(b);
 }
 
 void rechercherProduit(const Boutique *b)
 {
+    if (b == NULL) return;
+
     printf("\n--- Recherche d'un produit ---\n");
-    printf("1. Par reference exacte\n2. Par mot-cle dans la designation\n");
+    printf("1. Par reference exacte\n");
+    printf("2. Par mot-cle dans la designation\n");
+
     int choix = lireEntier("Votre choix : ", 1, 2);
     int trouves = 0;
 
     if (choix == 1) {
-        char ref[LG_REFERENCE];
-        lireChaine("Reference : ", ref, sizeof ref);
-        int i = indexProduit(b, ref);
-        if (i >= 0 && b->produits[i].actif) {
-            afficherEnTeteProduits();
-            afficherLigneProduit(&b->produits[i]);
+        char reference[LG_REFERENCE];
+        lireChaine("Reference : ", reference, sizeof reference);
+
+        int index = indexProduit(b, reference);
+        if (index >= 0 && b->produits[index].actif) {
+            afficherEnteteProduits();
+            afficherLigneProduit(&b->produits[index]);
             trouves = 1;
-        } else if (i >= 0) {
+        } else if (index >= 0) {
             printf("Ce produit existe mais a ete supprime (desactive).\n");
             return;
         }
     } else {
         char mot[LG_DESIGNATION];
         lireChaine("Mot-cle : ", mot, sizeof mot);
-        for (int i = 0; i < b->nbProduits; i++) {
+
+        for (int i = 0; i < b->nbProduits; ++i) {
             const Produit *p = &b->produits[i];
-            if (!p->actif || !contientMotCle(p->designation, mot)) continue;
-            if (trouves == 0) afficherEnTeteProduits();
+
+            if (!p->actif || !contientMotCle(p->designation, mot))
+                continue;
+
+            if (trouves == 0) afficherEnteteProduits();
             afficherLigneProduit(p);
-            trouves++;
+            ++trouves;
         }
     }
 
@@ -345,32 +423,46 @@ void rechercherProduit(const Boutique *b)
 
 void afficherAlertesStock(const Boutique *b)
 {
-    int n = 0;
+    if (b == NULL) return;
 
+    int nombre = 0;
     printf("\n=== ALERTES DE STOCK ===");
-    for (int i = 0; i < b->nbProduits; i++) {
+
+    for (int i = 0; i < b->nbProduits; ++i) {
         const Produit *p = &b->produits[i];
-        if (!p->actif || p->quantiteStock > p->seuilAlerte) continue;
-        if (n == 0) afficherEnTeteProduits();
+
+        if (!p->actif || p->quantiteStock > p->seuilAlerte)
+            continue;
+
+        if (nombre == 0) afficherEnteteProduits();
         afficherLigneProduit(p);
-        n++;
+        ++nombre;
     }
-    if (n == 0) printf("\nAucun produit en alerte de stock.\n");
-    else        printf("\n%d produit(s) a reapprovisionner.\n", n);
+
+    if (nombre == 0) {
+        printf("\nAucun produit en alerte de stock.\n");
+    } else {
+        printf("\n%d produit(s) a reapprovisionner.\n", nombre);
+    }
 }
 
-/* ================================================================== */
-/*  GESTION DU STOCK                                                  */
-/* ================================================================== */
+/* ============================================================
+ * GESTION DU STOCK
+ * ============================================================ */
 
 int retirerStock(Produit *p, int quantite)
 {
-    if (quantite <= 0 || quantite > p->quantiteStock) return PRODUIT_STOCK_INSUFFISANT;
+    if (p == NULL || quantite <= 0 || quantite > p->quantiteStock)
+        return PRODUIT_STOCK_INSUFFISANT;
+
     p->quantiteStock -= quantite;
     return PRODUIT_OK;
 }
 
 void reintegrerStock(Produit *p, int quantite)
 {
-    if (quantite > 0) p->quantiteStock += quantite;
+    if (p == NULL || quantite <= 0) return;
+
+    if (p->quantiteStock <= STOCK_MAX - quantite)
+        p->quantiteStock += quantite;
 }
