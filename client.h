@@ -6,3 +6,4 @@
  * UTILISE PAR : main.c (menu), commande.c (points de fidelite, ajout
  *        d'une commande au client), statistique.c (palmares clients).
  * ============================================================ */
+#include "client.c"

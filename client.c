@@ -9,3 +9,8 @@
  *        - afficherClient : fiche + historique des commandes
  * ETAT : trouverClient() et les fonctions de points sont faits.
  * ============================================================ */
+
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
+ #include "client.h"
