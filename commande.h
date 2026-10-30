@@ -11,24 +11,24 @@
 
 #include "types.h"
 
-int creerCommande(Boutique *b, int idClient, Date date,
-                  const char *refProduit, int quantite);
+/* Créer une nouvelle commande pour un client */
+int creerCommande(Boutique *boutique, int idClient, float montantTotal);
 
-int ajouterLigneCommande(Boutique *b, int numero,
-                         const char *refProduit, int quantite);
+/* Rechercher une commande */
+Commande *chercherCommande(Boutique *boutique, int idClient, int idCommande);
 
-int supprimerLigneCommande(Boutique *b, int numero,
-                           const char *refProduit);
+/* Modifier le statut d'une commande */
+int changerStatutCommande(Boutique *boutique, int idClient,
+                          int idCommande, StatutCommande nouveauStatut);
 
-void calculerCommande(Commande *c);
+/* Annuler une commande */
+int annulerCommande(Boutique *boutique, int idClient, int idCommande);
 
-int changerStatutCommande(Boutique *b, int numero,
-                          const char *nouveauStatut);
+/* Afficher les commandes d'un client */
+void afficherCommandes(Boutique *boutique, int idClient);
 
-int annulerCommande(Boutique *b, int numero);
-
-void afficherCommande(Boutique *b, int numero);
+/* Afficher une commande précise */
+void afficherCommande(Commande *commande);
 
 #endif
-
 
