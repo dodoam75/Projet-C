@@ -19,7 +19,9 @@
  * ========================================================================== */
 #include <stdio.h>
 #include <stdlib.h>
-#include "types.h"
+#include "client.h"
+#include "produit.h"
+#include "statistique.h"
 #include "commande.h"
 #include <string.h>
 /* --------------------------------------------------------------------------
@@ -42,17 +44,8 @@ static int lireChoix(void)
  * A REMPLACER par les vraies fonctions des modules au fil des seances.
  * ========================================================================== */
 
-/* --- Module PRODUITS ------------------------------------------------------ */
-void ajouterProduit(void)      { printf("  [STUB] ajouterProduit - a implementer dans produit.c\n"); }
-void modifierProduit(void)     { printf("  [STUB] modifierProduit - a implementer dans produit.c\n"); }
-void supprimerProduit(void)    { printf("  [STUB] supprimerProduit - a implementer dans produit.c\n"); }
-void afficherCatalogue(void)   { printf("  [STUB] afficherCatalogue - a implementer dans produit.c\n"); }
-
 /* --- Module CLIENTS ------------------------------------------------------- */
-void ajouterClient(void)       { printf("  [STUB] ajouterClient - a implementer dans client.c\n"); }
-void modifierClient(void)      { printf("  [STUB] modifierClient - a implementer dans client.c\n"); }
-void supprimerClient(void)     { printf("  [STUB] supprimerClient - a implementer dans client.c\n"); }
-void afficherListeClients(void){ printf("  [STUB] afficherListeClients - a implementer dans client.c\n"); }3
+void afficherListeClients(void){ printf("  [STUB] afficherListeClients - a implementer dans client.c\n"); }
 
 /*  Module STATISTIQUES */
 void afficherChiffreAffaires(void) { printf("  [STUB] afficherChiffreAffaires - a implementer dans statistique.c\n"); }
@@ -62,28 +55,45 @@ void afficherChiffreAffaires(void) { printf("  [STUB] afficherChiffreAffaires - 
  * Pour ajouter une fonctionnalite : un printf + un case + la borne max.
  * ========================================================================== */
 
-static void menuProduits(void)
-{
+void menuProduits(Boutique *b) {
     int choix;
-    do
-    {
-        printf("\n===== GESTION DES PRODUITS =====\n");
-        printf("  1. Ajouter un produit\n");
-        printf("  2. Modifier un produit\n");
-        printf("  3. Supprimer un produit\n");
-        printf("  4. Afficher le catalogue\n");
-        printf("  0. Retour au menu principal\n");
-        choix = lireChoix();
 
-        switch (choix)
-        {
-            case 1: ajouterProduit();    break;
-            case 2: modifierProduit();   break;
-            case 3: supprimerProduit();  break;
-            case 4: afficherCatalogue(); break;
-            case 0:                      break; /* retour automatique */
-            default: printf("  [!] Choix invalide.\n"); break;
+    do {
+        printf("\n===== MENU PRODUITS =====\n");
+        printf("1. Ajouter un produit\n");
+        printf("2. Modifier un produit\n");
+        printf("3. Supprimer un produit\n");
+        printf("4. Afficher le catalogue\n");
+        printf("0. Retour\n");
+        printf("Votre choix : ");
+
+        scanf("%d", &choix);
+
+        switch (choix) {
+        case 1:
+            ajouterProduit(b);
+            break;
+
+        case 2:
+            modifierProduit(b);
+            break;
+
+        case 3:
+            supprimerProduit(b);
+            break;
+
+        case 4:
+            afficherCatalogue(b);
+            break;
+
+        case 0:
+            printf("Retour au menu principal.\n");
+            break;
+
+        default:
+            printf("Choix invalide.\n");
         }
+
     } while (choix != 0);
 }
 
@@ -102,9 +112,17 @@ static void menuClients(void)
 
         switch (choix)
         {
-            case 1: ajouterClient();        break;
-            case 2: modifierClient();       break;
-            case 3: supprimerClient();      break;
+        case 1:
+            printf("Fonction ajouter client à compléter.\n");
+            break;
+
+        case 2:
+            printf("Fonction modifier client à compléter.\n");
+            break;
+
+        case 3:
+            printf("Fonction supprimer client à compléter.\n");
+            break;
             case 4: afficherListeClients(); break;
             case 0:                         break;
             default: printf("  [!] Choix invalide.\n"); break;
@@ -192,7 +210,7 @@ int main(void)
 
         switch (choix)
         {
-        case 1: menuProduits(); break;
+        case 1: menuProduits(&boutique); break;
         case 2: menuClients(); break;
         case 3: menuCommandes(&boutique); break;
         case 4: menuStatistiques(); break;
