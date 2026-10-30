@@ -1,17 +1,6 @@
-/* ============================================================
- * commande.c - Implementation des commandes (module le plus complexe)
- * ------------------------------------------------------------
- * ROLE : - calculCommande : brut HT -> remise (paliers) -> HT -> TVA 20 %
- *          -> frais de port (offerts des 60 EUR HT brut) -> TTC
- *        - ajouterLigne : tableau dynamique de lignes (realloc), pas de
- *          doublon de reference, stock verifie sur la quantite cumulee
- *        - creerCommande : decremente le stock, credite les points
- *        - annulerCommande : seulement EN_COURS, reintegre stock + points
- *        - changerStatutCommande : EN_COURS -> EXPEDIEE -> LIVREE
- * ETAT : calculerTauxRemise() et trouverCommande() sont faits.
- * ============================================================ */
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "commande.h"
 
 
@@ -37,7 +26,8 @@ static Client *chercherClient(Boutique *boutique, int idClient)
 
 
 /* Rechercher une commande */
-Commande *chercherCommande(Boutique *boutique, int idClient, int idCommande)
+Commande *chercherCommande(Boutique *boutique, int idClient,
+                           int numeroCommande)
 {
     Client *client;
     int i;
@@ -49,7 +39,7 @@ Commande *chercherCommande(Boutique *boutique, int idClient, int idCommande)
 
     for (i = 0; i < client->nbCommandes; i++)
     {
-        if (client->commandes[i].idCommande == idCommande)
+        if (client->commandes[i].numero == numeroCommande)
         {
             return &client->commandes[i];
         }
@@ -65,8 +55,6 @@ int creerCommande(Boutique *boutique, int idClient, float montantTotal)
     Client *client;
     Commande *nouveauTableau;
     Commande nouvelle;
-    int i;
-    int nouvelId = 1;
 
     if (boutique == NULL || montantTotal < 0)
         return 0;
@@ -76,7 +64,7 @@ int creerCommande(Boutique *boutique, int idClient, float montantTotal)
     if (client == NULL)
         return 0;
 
-    /* Vérifier si le tableau de commandes doit être agrandi */
+    /* Agrandir le tableau si nécessaire */
     if (client->nbCommandes >= client->capaciteCommandes)
     {
         int nouvelleCapacite;
@@ -98,54 +86,60 @@ int creerCommande(Boutique *boutique, int idClient, float montantTotal)
         client->capaciteCommandes = nouvelleCapacite;
     }
 
-    /* Trouver un nouvel identifiant de commande */
-    for (i = 0; i < boutique->nbClients; i++)
-    {
-        Client *c = &boutique->clients[i];
-        int j;
+    /* Initialiser tous les champs à zéro */
+    memset(&nouvelle, 0, sizeof(Commande));
 
-        for (j = 0; j < c->nbCommandes; j++)
-        {
-            if (c->commandes[j].idCommande >= nouvelId)
-                nouvelId = c->commandes[j].idCommande + 1;
-        }
-    }
+    /* Attribuer le numéro depuis la boutique */
+    if (boutique->numeroSuivant <= 0)
+        boutique->numeroSuivant = 1;
 
-    /* Remplir la nouvelle commande */
-    nouvelle.idCommande = nouvelId;
+    nouvelle.numero = boutique->numeroSuivant;
     nouvelle.idClient = idClient;
-    nouvelle.montantTotal = montantTotal;
-    nouvelle.statut = EN_ATTENTE;
+
+    /* Pour cette version simplifiée, on stocke le montant en TTC */
+    nouvelle.montantTTC = montantTotal;
+
+    /* Une nouvelle commande commence EN_COURS */
+    strcpy(nouvelle.statut, "EN_COURS");
 
     /* Ajouter la commande au tableau du client */
     client->commandes[client->nbCommandes] = nouvelle;
     client->nbCommandes++;
 
-    return nouvelId;
+    /* Préparer le prochain numéro */
+    boutique->numeroSuivant++;
+
+    return nouvelle.numero;
 }
 
 
 /* Modifier le statut d'une commande */
 int changerStatutCommande(Boutique *boutique, int idClient,
-                          int idCommande, StatutCommande nouveauStatut)
+                          int numeroCommande, const char *nouveauStatut)
 {
     Commande *commande;
 
-    commande = chercherCommande(boutique, idClient, idCommande);
+    if (nouveauStatut == NULL)
+        return 0;
+
+    commande = chercherCommande(boutique, idClient, numeroCommande);
 
     if (commande == NULL)
         return 0;
 
-    /* Vérifier les transitions autorisées */
-    if (commande->statut == EN_ATTENTE && nouveauStatut == EN_COURS)
+    /* EN_COURS -> EXPEDIEE */
+    if (strcmp(commande->statut, "EN_COURS") == 0 &&
+        strcmp(nouveauStatut, "EXPEDIEE") == 0)
     {
-        commande->statut = nouveauStatut;
+        strcpy(commande->statut, "EXPEDIEE");
         return 1;
     }
 
-    if (commande->statut == EN_COURS && nouveauStatut == LIVREE)
+    /* EXPEDIEE -> LIVREE */
+    if (strcmp(commande->statut, "EXPEDIEE") == 0 &&
+        strcmp(nouveauStatut, "LIVREE") == 0)
     {
-        commande->statut = nouveauStatut;
+        strcpy(commande->statut, "LIVREE");
         return 1;
     }
 
@@ -154,20 +148,20 @@ int changerStatutCommande(Boutique *boutique, int idClient,
 
 
 /* Annuler une commande */
-int annulerCommande(Boutique *boutique, int idClient, int idCommande)
+int annulerCommande(Boutique *boutique, int idClient, int numeroCommande)
 {
     Commande *commande;
 
-    commande = chercherCommande(boutique, idClient, idCommande);
+    commande = chercherCommande(boutique, idClient, numeroCommande);
 
     if (commande == NULL)
         return 0;
 
-    /* Une commande déjà livrée ou annulée ne peut pas être annulée */
-    if (commande->statut == LIVREE || commande->statut == ANNULEE)
+    /* Seule une commande EN_COURS peut être annulée */
+    if (strcmp(commande->statut, "EN_COURS") != 0)
         return 0;
 
-    commande->statut = ANNULEE;
+    strcpy(commande->statut, "ANNULEE");
 
     return 1;
 }
@@ -181,34 +175,10 @@ void afficherCommande(Commande *commande)
 
     printf("\n--- COMMANDE ---\n");
 
-    printf("Numero : %d\n", commande->idCommande);
+    printf("Numero : %d\n", commande->numero);
     printf("Client : %d\n", commande->idClient);
-    printf("Montant total : %.2f euros\n", commande->montantTotal);
-
-    printf("Statut : ");
-
-    switch (commande->statut)
-    {
-        case EN_ATTENTE:
-            printf("En attente\n");
-            break;
-
-        case EN_COURS:
-            printf("En cours\n");
-            break;
-
-        case LIVREE:
-            printf("Livree\n");
-            break;
-
-        case ANNULEE:
-            printf("Annulee\n");
-            break;
-
-        default:
-            printf("Statut inconnu\n");
-            break;
-    }
+    printf("Montant TTC : %.2f euros\n", commande->montantTTC);
+    printf("Statut : %s\n", commande->statut);
 }
 
 
@@ -235,5 +205,31 @@ void afficherCommandes(Boutique *boutique, int idClient)
     for (i = 0; i < client->nbCommandes; i++)
     {
         afficherCommande(&client->commandes[i]);
+    }
+}
+void menuCreerCommande(Boutique *boutique)
+{
+    int idClient;
+    float montantTotal;
+    int numero;
+
+    printf("\n===== CREATION D'UNE COMMANDE =====\n");
+
+    printf("Identifiant du client : ");
+    scanf("%d", &idClient);
+
+    printf("Montant de la commande : ");
+    scanf("%f", &montantTotal);
+
+    numero = creerCommande(boutique, idClient, montantTotal);
+
+    if (numero != 0)
+    {
+        printf("Commande creee avec succes !\n");
+        printf("Numero de commande : %d\n", numero);
+    }
+    else
+    {
+        printf("Erreur : impossible de creer la commande.\n");
     }
 }
